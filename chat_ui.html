@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Student Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+  <style>
+        .ai-response {
+          background-color: #f8f9fa;
+          border-left: 4px solid #0088cc;
+          padding: 8px 12px;
+          margin-top: 6px;
+          font-size: 14px;
+          line-height: 1.5;
+          white-space: pre-wrap;
+        }
+        
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #e5ddd5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background-color: #0088cc;
+      color: white;
+      padding: 12px 20px;
+      font-size: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #chat-box {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background-color: #e5ddd5;
+    }
+    .msg {
+      background-color: #fff;
+      padding: 10px 15px;
+      border-radius: 10px;
+      margin: 8px 0;
+      width: fit-content;
+      max-width: 70%;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    }
+    .msg .sender {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+    }
+    #typing {
+      font-style: italic;
+      color: #666;
+      padding: 0 20px;
+      height: 20px;
+    }
+    footer {
+      padding: 10px;
+      background-color: #f0f0f0;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid #ccc;
+      flex-wrap: wrap;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #0088cc;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    input[type="file"] {
+      font-size: 14px;
+    }
+    emoji-picker {
+      position: absolute;
+      bottom: 60px;
+      right: 10px;
+    }
+  </style>
+</head>
+<body class="dark">
+  <header>
+    <span>Student Chat</span>
+    <button onclick="toggleEmojiPicker()">😊</button>
+  </header>
+  <div id="chat-box"></div>
+  <div id="typing"></div>
+  <footer>
+    <input type="text" id="messageInput" placeholder="Type your message...">
+    <input type="file" id="fileInput" accept="image/*,application/pdf">
+    <button onclick="sendMessage()">Send</button>
+  </footer>
+  <emoji-picker id="emojiPicker" style="display: none;"></emoji-picker>
+
+  <script>
+    let socket;
+    let typingTimeout;
+    let emojiPicker = document.getElementById("emojiPicker");
+
+    function connect() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('sessionId') || 'demo_session';
+      socket = new WebSocket(`ws://192.168.50.162:8000/ws/${sessionId}`);
+
+      socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.typing && data.sender !== 'student') {
+          document.getElementById('typing').innerText = `${data.sender} is typing...`;
+          clearTimeout(typingTimeout);
+          typingTimeout = setTimeout(() => document.getElementById('typing').innerText = '', 2000);
+          return;
+        }
+
+        if (!data.message) return;
+  document.getElementById("typing").innerText = "";
+
+        const div = document.createElement('div');
+        div.classList.add('msg');
+        if (data.sender === "counselor") {
+          div.innerHTML = `<span class="sender">${data.sender}</span><div class="ai-response">${data.message}</div>`;
+        } else {
+          div.innerHTML = `<span class="sender">${data.sender}</span>${data.message}`;
+        }
+        document.getElementById('chat-box').appendChild(div);
+        document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+      };
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const fileInput = document.getElementById('fileInput');
+      const message = input.value.trim();
+
+      if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = function() {
+          socket.send(JSON.stringify({ sender: "student", message: `[File] ${file.name}`, fileData: reader.result }));
+        };
+        reader.readAsDataURL(file);
+        fileInput.value = "";
+      }
+
+      if (message) {
+        socket.send(JSON.stringify({ sender: "student", message: message }));
+        input.value = "";
+      }
+    }
+
+    document.getElementById('messageInput').addEventListener('input', () => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ sender: "student", typing: true }));
+      }
+    });
+
+    document.getElementById('messageInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    function toggleEmojiPicker() {
+      emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+    }
+
+    emojiPicker.addEventListener('emoji-click', event => {
+      const input = document.getElementById('messageInput');
+      input.value += event.detail.unicode;
+      input.focus();
+    });
+
+    window.onload = connect;
+  </script>
+</body>
+</html>
