@@ -1,4 +1,5 @@
 import streamlit as st
+from config.constants import CHATBOX_IFRAME_URL
 
 st.set_page_config(page_title="Counselor Chat", layout="wide")
 st.title("👩‍⚕️ Counselor WebSocket Chat")
@@ -144,7 +145,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     # Embed the chatbot HTML inside an iframe
-    st.components.v1.iframe(src="http://localhost:8503/chat_login_ui.html", height=700, width=1000)
+    st.components.v1.iframe(src=CHATBOX_IFRAME_URL, height=700, width=1000)
 
 with col2:
     st.subheader("Live Insights 🔍")

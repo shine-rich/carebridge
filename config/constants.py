@@ -1,3 +1,6 @@
+CHATBOX_HOST = "http://100.88.142.8"
+CHATBOX_URL = f"{CHATBOX_HOST}:8503"
+CHATBOX_IFRAME_URL = f"{CHATBOX_URL}/chat_login_ui.html"
 
 DB_FILE = "carebridge.db"
 BACKUP_DIR = "backups"

@@ -113,11 +113,12 @@
     let socket;
     let typingTimeout;
     let emojiPicker = document.getElementById("emojiPicker");
+    const WS_HOST = "ws://100.88.142.8:8000";
 
     function connect() {
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('sessionId') || 'demo_session';
-      socket = new WebSocket(`ws://192.168.50.162:8000/ws/${sessionId}`);
+      socket = new WebSocket(`${WS_HOST}/ws/${sessionId}`);
 
       socket.onmessage = function(event) {
         const data = JSON.parse(event.data);
